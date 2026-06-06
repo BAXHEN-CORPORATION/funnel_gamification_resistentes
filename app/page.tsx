@@ -1,14 +1,18 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
 
-  const handleClick = () => {
+  useEffect(() => {
     if (document.documentElement.requestFullscreen) {
       document.documentElement.requestFullscreen().catch(() => {});
     }
+  }, []);
+
+  const handleClick = () => {
     router.push("/chamada-urgente");
   };
 
