@@ -1,41 +1,22 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCallAudio } from "@/hooks/useCallAudio";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Image from "next/image";
-import { Phone, PhoneOff, Volume2 } from "lucide-react";
+import {
+  Phone,
+  PhoneOff,
+  MicOff,
+  Grid3X3,
+  Volume2,
+  Plus,
+  Video,
+  User,
+} from "lucide-react";
 
 type CallState = "incoming" | "active" | "ended";
-
-interface ScriptLine {
-  id: number;
-  text: string;
-}
-
-const SCRIPT_LINES: ScriptLine[] = [
-  { id: 1, text: "Você sabe o que está acontecendo com a sociedade." },
-  { id: 2, text: "Não é coincidência. Nunca foi." },
-  { id: 3, text: "Existem forças que preferem que ninguém questione." },
-  { id: 4, text: "Compilamos os arquivos. As evidências estão organizadas." },
-  { id: 5, text: "Mas precisamos de alguém que realmente queira entender." },
-  { id: 6, text: "Alguém como você." },
-  { id: 7, text: "Vou te enviar o acesso. Verifique seu WhatsApp." },
-];
-
-const FIRST_LINE_DELAY_MS = 1500;
-const SCRIPT_INTERVAL_MS = 5000;
-const END_AFTER_LAST_LINE_MS = 3500;
-const REDIRECT_SHOW_DELAY_MS = 1500;
-const REDIRECT_PUSH_DELAY_MS = 4000;
-
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
-
-const WAVE_BARS = [0, 1, 2, 3, 4];
 
 // Three staggered ripple rings
 const RINGS = [
@@ -44,38 +25,57 @@ const RINGS = [
   { delay: "1.3s", opacity: 0.25 },
 ];
 
+interface CallButton {
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+}
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
 export default function ChamadaUrgentePage() {
   const router = useRouter();
   const [callState, setCallState] = useState<CallState>("incoming");
-  const [visibleLines, setVisibleLines] = useState<ScriptLine[]>([]);
   const [callSeconds, setCallSeconds] = useState<number>(0);
   const [showRedirect, setShowRedirect] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isSpeaker, setIsSpeaker] = useState<boolean>(false);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { retryPlay: retryIncomingAudio } = useCallAudio(
+    "/audios/incoming-call-vibrate-single.mp3",
+    {
+      enabled: callState === "incoming",
+      repeatInterval: 3000,
+      vibrate: true,
+      vibratePattern: [400, 200, 400],
+    },
+  );
 
-  // Play ringtone while incoming, stop on answer/decline
+  // ── Call-end beep × 3 ──
   useEffect(() => {
-    console.log("Call state changed:", callState);
-    if (callState !== "incoming") return;
-    const audio = new Audio("/audios/incoming-call-sound.mp3");
-    audio.loop = true;
-    audioRef.current = audio;
-    audio.play().catch(() => {
-      console.warn(
-        "Autoplay failed. User interaction is required to play the ringtone.",
-      );
-      // Browser may block autoplay until user interaction — silent fail is correct
-    });
+    if (callState !== "ended") return;
+    let count = 0;
+    let current: HTMLAudioElement | null = null;
+    const playNext = () => {
+      if (count >= 3) return;
+      count++;
+      const audio = new Audio("/audios/call-end-beep.mp3");
+      current = audio;
+      audio.addEventListener("ended", playNext, { once: true });
+      audio.play().catch(() => {});
+    };
+    playNext();
     return () => {
-      audio.pause();
-      audio.currentTime = 0;
+      count = 3;
+      current?.pause();
     };
   }, [callState]);
 
-  const handleAnswer = useCallback(() => setCallState("active"), []);
-  const handleDecline = useCallback(() => setCallState("ended"), []);
-
-  // Call timer
+  // ── Call timer ──
   useEffect(() => {
     if (callState !== "active") return;
     const interval = setInterval(
@@ -85,46 +85,45 @@ export default function ChamadaUrgentePage() {
     return () => clearInterval(interval);
   }, [callState]);
 
-  // Progressive script reveal
-  useEffect(() => {
-    if (callState !== "active") return;
-    if (visibleLines.length >= SCRIPT_LINES.length) return;
-    const delay =
-      visibleLines.length === 0 ? FIRST_LINE_DELAY_MS : SCRIPT_INTERVAL_MS;
-    const t = setTimeout(() => {
-      setVisibleLines((prev) => {
-        const next = SCRIPT_LINES[prev.length];
-        return next ? [...prev, next] : prev;
-      });
-    }, delay);
-    return () => clearTimeout(t);
-  }, [callState, visibleLines]);
-
-  // End call after last line
-  useEffect(() => {
-    if (visibleLines.length !== SCRIPT_LINES.length) return;
-    const t = setTimeout(() => setCallState("ended"), END_AFTER_LAST_LINE_MS);
-    return () => clearTimeout(t);
-  }, [visibleLines]);
-
-  // Redirect sequence
+  // ── Redirect after ended ──
   useEffect(() => {
     if (callState !== "ended") return;
-    const t1 = setTimeout(() => setShowRedirect(true), REDIRECT_SHOW_DELAY_MS);
-    const t2 = setTimeout(
-      () => router.push("/whatsapp"),
-      REDIRECT_PUSH_DELAY_MS,
-    );
+    const t1 = setTimeout(() => setShowRedirect(true), 1500);
+    const t2 = setTimeout(() => router.push("/whatsapp"), 4000);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
   }, [callState, router]);
 
+  const handleAnswer = useCallback(() => setCallState("active"), []);
+  const handleEndCall = useCallback(() => setCallState("ended"), []);
+
+  // ── Active call audio — auto-ends call when audio finishes ──
+  useCallAudio("/audios/urgent-call.mp3", {
+    enabled: callState === "active",
+    onEnded: handleEndCall,
+  });
+  const toggleMute = useCallback(() => setIsMuted((v) => !v), []);
+  const toggleSpeaker = useCallback(() => setIsSpeaker((v) => !v), []);
+
   const currentTime = useMemo(() => {
     const now = new Date();
     return `${now.getHours()}:${String(now.getMinutes()).padStart(2, "0")}`;
   }, []);
+
+  const callButtons: CallButton[] = [
+    { icon: <MicOff className="h-7 w-7" />, label: "mudo", active: isMuted },
+    { icon: <Grid3X3 className="h-7 w-7" />, label: "teclado" },
+    {
+      icon: <Volume2 className="h-7 w-7" />,
+      label: "áudio",
+      active: isSpeaker,
+    },
+    { icon: <Plus className="h-7 w-7" />, label: "adicionar" },
+    { icon: <Video className="h-7 w-7" />, label: "FaceTime" },
+    { icon: <User className="h-7 w-7" />, label: "contatos" },
+  ];
 
   return (
     <main
@@ -145,7 +144,7 @@ export default function ChamadaUrgentePage() {
           }}
         />
 
-        {/* Status bar — always visible */}
+        {/* Status bar */}
         <div className="relative z-10 flex flex-shrink-0 items-center justify-between px-6 pb-2 pt-4">
           <span className="text-[15px] font-semibold tabular-nums text-white">
             {currentTime}
@@ -180,19 +179,19 @@ export default function ChamadaUrgentePage() {
           </div>
         </div>
 
-        {/* ── INCOMING ── plain div, always visible when callState matches */}
+        {/* ── INCOMING ── */}
         {callState === "incoming" && (
           <div
             className="relative z-10 flex flex-1 flex-col items-center overflow-hidden"
-            onClick={() => audioRef.current?.play().catch(() => {})}
+            onClick={retryIncomingAudio}
           >
-            {/* TOP: caller info */}
+            {/* TOP */}
             <div className="flex flex-col items-center gap-5 pt-10">
               <p className="text-xs uppercase tracking-[0.22em] text-white/50">
                 Chamada recebida
               </p>
 
-              {/* Avatar + CSS ping rings */}
+              {/* Avatar + ping rings */}
               <div
                 className="relative flex items-center justify-center"
                 style={{ width: 112, height: 112 }}
@@ -228,7 +227,7 @@ export default function ChamadaUrgentePage() {
               </div>
             </div>
 
-            {/* MIDDLE: volume hint */}
+            {/* MIDDLE */}
             <div className="flex flex-1 flex-col items-center justify-center gap-2">
               <Volume2 className="h-5 w-5 text-white/30" aria-hidden="true" />
               <p className="max-w-[180px] break-words text-center text-xs hyphens-auto text-white/30">
@@ -236,15 +235,16 @@ export default function ChamadaUrgentePage() {
               </p>
             </div>
 
-            {/* BOTTOM: action buttons */}
+            {/* BOTTOM: buttons */}
             <div className="flex w-full max-w-[300px] items-center justify-between px-4 pb-16">
               {/* Decline */}
               <div className="flex flex-col items-center gap-2.5">
                 <motion.button
-                  onClick={handleDecline}
+                  onClick={handleEndCall}
                   className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#FF3B30] focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-black"
                   aria-label="Recusar chamada"
                   whileTap={{ scale: 0.88 }}
+                  style={{ cursor: "pointer" }}
                 >
                   <PhoneOff className="h-8 w-8 text-white" aria-hidden="true" />
                 </motion.button>
@@ -256,7 +256,6 @@ export default function ChamadaUrgentePage() {
               {/* Answer */}
               <div className="flex flex-col items-center gap-2.5">
                 <div className="relative flex items-center justify-center">
-                  {/* CSS pulse glow rings */}
                   <span
                     className="absolute animate-ping rounded-full bg-[#34C759]"
                     style={{
@@ -281,7 +280,10 @@ export default function ChamadaUrgentePage() {
                     className="relative z-10 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#34C759] focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-black"
                     aria-label="Atender chamada"
                     whileTap={{ scale: 0.88 }}
-                    style={{ boxShadow: "0 0 28px rgba(52,199,89,0.5)" }}
+                    style={{
+                      boxShadow: "0 0 28px rgba(52,199,89,0.5)",
+                      cursor: "pointer",
+                    }}
                   >
                     <Phone className="h-8 w-8 text-white" aria-hidden="true" />
                   </motion.button>
@@ -297,107 +299,81 @@ export default function ChamadaUrgentePage() {
         {/* ── ACTIVE ── */}
         {callState === "active" && (
           <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
-            {/* Header */}
-            <div className="flex flex-shrink-0 flex-col items-center gap-1 pb-4 pt-6">
-              <p className="text-xs uppercase tracking-[0.15em] text-white/50">
-                Em chamada
-              </p>
-              <h2 className="text-xl font-medium text-white">Número Privado</h2>
-              <p
-                className="text-sm tabular-nums text-[#34C759]"
-                aria-live="polite"
-                aria-label={`Duração: ${formatDuration(callSeconds)}`}
-              >
-                {formatDuration(callSeconds)}
-              </p>
-            </div>
-
-            {/* Waveform */}
-            <div
-              className="flex flex-shrink-0 items-center justify-center gap-2 py-5"
-              aria-hidden="true"
-            >
-              {WAVE_BARS.map((i) => (
-                <motion.div
-                  key={i}
-                  className="w-[5px] rounded-full bg-[#34C759]"
-                  style={{ height: 28, transformOrigin: "50% 50%" }}
-                  animate={{ scaleY: [0.25, 1, 0.45, 0.8, 0.25] }}
-                  transition={{
-                    duration: 0.75,
-                    repeat: Infinity,
-                    delay: i * 0.13,
-                    ease: "easeInOut",
-                  }}
+            {/* Caller info */}
+            <div className="flex flex-shrink-0 flex-col items-center gap-2 pt-8">
+              <div className="relative h-16 w-16 overflow-hidden rounded-full border border-zinc-700">
+                <Image
+                  src="/avatar-caller.png"
+                  alt="Caller"
+                  fill
+                  className="object-cover"
                 />
-              ))}
+              </div>
+              <div className="flex flex-col items-center gap-0.5">
+                <h2 className="text-2xl font-semibold tracking-tight text-white">
+                  Número Privado
+                </h2>
+                <p className="text-sm tabular-nums text-white/50">
+                  {formatDuration(callSeconds)}
+                </p>
+              </div>
             </div>
 
-            {/* Transcript */}
-            <div
-              className="flex-1 overflow-y-auto px-6 pb-4"
-              role="log"
-              aria-live="polite"
-              aria-label="Transcrição da chamada"
-            >
-              <div className="flex flex-col gap-5 pb-4">
-                <AnimatePresence>
-                  {visibleLines.map((line) => (
-                    <motion.div
-                      key={line.id}
-                      className="flex items-start gap-3"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, ease: "easeOut" }}
-                    >
-                      <div
-                        className="mt-[9px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-zinc-500"
-                        aria-hidden="true"
-                      />
-                      <p className="break-words text-[15px] leading-[1.65] hyphens-auto text-white/85">
-                        {line.text}
-                      </p>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+            {/* Spacer */}
+            <div className="flex-1" />
 
-                {visibleLines.length < SCRIPT_LINES.length && (
-                  <motion.div
-                    className="flex items-center gap-1.5 pl-[18px]"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ delay: 0.4 }}
-                    aria-label="Aguardando..."
-                  >
-                    {([0, 1, 2] as number[]).map((i) => (
-                      <motion.div
-                        key={i}
-                        className="h-1.5 w-1.5 rounded-full bg-zinc-600"
-                        animate={{ opacity: [0.3, 1, 0.3] }}
-                        transition={{
-                          duration: 1.1,
-                          repeat: Infinity,
-                          delay: i * 0.22,
-                        }}
-                      />
-                    ))}
-                  </motion.div>
-                )}
+            {/* iOS call button grid */}
+            <div className="flex-shrink-0 px-8 pb-8">
+              <div className="grid grid-cols-3 gap-5">
+                {callButtons.map((btn, i) => {
+                  const isActionable = i === 0 || i === 2;
+                  return (
+                    <motion.button
+                      key={i}
+                      onClick={
+                        i === 0
+                          ? toggleMute
+                          : i === 2
+                            ? toggleSpeaker
+                            : undefined
+                      }
+                      className={[
+                        "flex flex-col items-center justify-center gap-1.5 rounded-2xl py-4",
+                        "focus:outline-none focus:ring-2 focus:ring-white/30",
+                        btn.active
+                          ? "bg-white text-zinc-900"
+                          : "bg-white/[0.14] text-white",
+                        !isActionable
+                          ? "opacity-50 cursor-default"
+                          : "cursor-pointer",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      aria-label={btn.label}
+                      aria-pressed={isActionable ? btn.active : undefined}
+                      whileTap={isActionable ? { scale: 0.93 } : undefined}
+                    >
+                      {btn.icon}
+                      <span className="text-[11px] font-medium tracking-wide">
+                        {btn.label}
+                      </span>
+                    </motion.button>
+                  );
+                })}
               </div>
             </div>
 
             {/* End call */}
-            <div className="flex flex-shrink-0 flex-col items-center gap-2 pb-14 pt-4">
+            <div className="flex flex-shrink-0 flex-col items-center pb-12">
               <motion.button
-                onClick={handleDecline}
-                className="flex h-[64px] w-[64px] items-center justify-center rounded-full bg-[#FF3B30] focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-black"
+                onClick={handleEndCall}
+                className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#FF3B30] focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-black"
                 aria-label="Encerrar chamada"
                 whileTap={{ scale: 0.88 }}
+                style={{ cursor: "pointer" }}
               >
-                <PhoneOff className="h-7 w-7 text-white" aria-hidden="true" />
+                <PhoneOff className="h-8 w-8 text-white" aria-hidden="true" />
               </motion.button>
-              <span className="text-xs text-white/35">Encerrar</span>
             </div>
           </div>
         )}
@@ -411,7 +387,6 @@ export default function ChamadaUrgentePage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900">
               <PhoneOff className="h-7 w-7 text-zinc-500" aria-hidden="true" />
             </div>
-
             <div className="flex flex-col items-center gap-1 text-center">
               <p className="text-lg font-medium text-white/65">
                 Chamada encerrada
