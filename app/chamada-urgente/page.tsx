@@ -240,7 +240,6 @@ export default function ChamadaUrgentePage() {
               {/* Decline */}
               <div className="flex flex-col items-center gap-2.5">
                 <motion.button
-                  onClick={handleEndCall}
                   className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#FF3B30] focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-black"
                   aria-label="Recusar chamada"
                   whileTap={{ scale: 0.88 }}
