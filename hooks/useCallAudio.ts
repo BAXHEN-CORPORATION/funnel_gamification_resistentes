@@ -36,19 +36,23 @@ export function useCallAudio(
   vibratePatternRef.current = vibratePattern;
   onEndedRef.current = onEnded;
 
-  const triggerVibrate = useCallback(() => {
-    if (
-      vibrateRef.current &&
-      typeof navigator !== "undefined" &&
-      "vibrate" in navigator
-    ) {
-      navigator.vibrate(vibratePatternRef.current);
-    }
-  }, []); // stable — reads latest via refs, no deps
-
   const playAudio = useCallback((): HTMLAudioElement => {
     const audio = new Audio(src);
     audio.loop = loop;
+    // Vibrate exactly when audio starts — not when play() is called (async gap)
+    audio.addEventListener(
+      "play",
+      () => {
+        if (
+          vibrateRef.current &&
+          typeof navigator !== "undefined" &&
+          "vibrate" in navigator
+        ) {
+          navigator.vibrate(vibratePatternRef.current);
+        }
+      },
+      { once: true },
+    );
     if (onEndedRef.current) {
       audio.addEventListener("ended", () => onEndedRef.current?.(), { once: true });
     }
@@ -61,7 +65,6 @@ export function useCallAudio(
 
     const audio = playAudio();
     audioRef.current = audio;
-    triggerVibrate();
 
     if (!repeatInterval) {
       return () => {
@@ -73,9 +76,7 @@ export function useCallAudio(
 
     const interval = setInterval(() => {
       audioRef.current?.pause();
-      const next = playAudio();
-      audioRef.current = next;
-      triggerVibrate();
+      audioRef.current = playAudio();
     }, repeatInterval);
 
     return () => {
@@ -90,13 +91,13 @@ export function useCallAudio(
         navigator.vibrate(0);
       }
     };
-  }, [enabled, src, loop, repeatInterval, playAudio, triggerVibrate]);
+  }, [enabled, src, loop, repeatInterval, playAudio]);
 
   const retryPlay = useCallback(() => {
     if (!audioRef.current || !audioRef.current.paused) return;
+    // Vibration fires via the "play" event listener attached in playAudio
     audioRef.current.play().catch(() => {});
-    triggerVibrate();
-  }, [triggerVibrate]);
+  }, []);
 
   return { retryPlay };
 }
