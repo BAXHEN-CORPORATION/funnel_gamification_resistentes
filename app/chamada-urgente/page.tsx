@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { Phone, PhoneOff, Volume2 } from "lucide-react";
 
 type CallState = "incoming" | "active" | "ended";
@@ -50,6 +51,27 @@ export default function ChamadaUrgentePage() {
   const [callSeconds, setCallSeconds] = useState<number>(0);
   const [showRedirect, setShowRedirect] = useState<boolean>(false);
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Play ringtone while incoming, stop on answer/decline
+  useEffect(() => {
+    console.log("Call state changed:", callState);
+    if (callState !== "incoming") return;
+    const audio = new Audio("/audios/incoming-call-sound.mp3");
+    audio.loop = true;
+    audioRef.current = audio;
+    audio.play().catch(() => {
+      console.warn(
+        "Autoplay failed. User interaction is required to play the ringtone.",
+      );
+      // Browser may block autoplay until user interaction — silent fail is correct
+    });
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, [callState]);
+
   const handleAnswer = useCallback(() => setCallState("active"), []);
   const handleDecline = useCallback(() => setCallState("ended"), []);
 
@@ -58,7 +80,7 @@ export default function ChamadaUrgentePage() {
     if (callState !== "active") return;
     const interval = setInterval(
       () => setCallSeconds((prev) => prev + 1),
-      1000
+      1000,
     );
     return () => clearInterval(interval);
   }, [callState]);
@@ -91,7 +113,7 @@ export default function ChamadaUrgentePage() {
     const t1 = setTimeout(() => setShowRedirect(true), REDIRECT_SHOW_DELAY_MS);
     const t2 = setTimeout(
       () => router.push("/whatsapp"),
-      REDIRECT_PUSH_DELAY_MS
+      REDIRECT_PUSH_DELAY_MS,
     );
     return () => {
       clearTimeout(t1);
@@ -160,7 +182,10 @@ export default function ChamadaUrgentePage() {
 
         {/* ── INCOMING ── plain div, always visible when callState matches */}
         {callState === "incoming" && (
-          <div className="relative z-10 flex flex-1 flex-col items-center overflow-hidden">
+          <div
+            className="relative z-10 flex flex-1 flex-col items-center overflow-hidden"
+            onClick={() => audioRef.current?.play().catch(() => {})}
+          >
             {/* TOP: caller info */}
             <div className="flex flex-col items-center gap-5 pt-10">
               <p className="text-xs uppercase tracking-[0.22em] text-white/50">
@@ -184,8 +209,14 @@ export default function ChamadaUrgentePage() {
                     aria-hidden="true"
                   />
                 ))}
-                <div className="relative flex h-28 w-28 flex-shrink-0 select-none items-center justify-center rounded-full border border-zinc-700 bg-zinc-800">
-                  <span className="text-5xl font-thin text-white/25">?</span>
+                <div className="relative h-28 w-28 flex-shrink-0 overflow-hidden rounded-full border border-zinc-700">
+                  <Image
+                    src="/avatar-caller.png"
+                    alt="Caller"
+                    fill
+                    className="object-cover"
+                    priority
+                  />
                 </div>
               </div>
 
@@ -228,7 +259,11 @@ export default function ChamadaUrgentePage() {
                   {/* CSS pulse glow rings */}
                   <span
                     className="absolute animate-ping rounded-full bg-[#34C759]"
-                    style={{ inset: -10, opacity: 0.22, animationDuration: "1.3s" }}
+                    style={{
+                      inset: -10,
+                      opacity: 0.22,
+                      animationDuration: "1.3s",
+                    }}
                     aria-hidden="true"
                   />
                   <span
