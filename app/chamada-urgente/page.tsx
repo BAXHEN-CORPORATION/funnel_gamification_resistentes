@@ -51,7 +51,7 @@ export default function ChamadaUrgentePage() {
       enabled: callState === "incoming",
       repeatInterval: 3000,
       vibrate: true,
-      vibratePattern: [400, 200, 400],
+      vibratePattern: [1000],
     },
   );
 
