@@ -89,7 +89,7 @@ export default function ChamadaUrgentePage() {
   useEffect(() => {
     if (callState !== "ended") return;
     const t1 = setTimeout(() => setShowRedirect(true), 1500);
-    const t2 = setTimeout(() => router.push("/whatsapp"), 4000);
+    const t2 = setTimeout(() => router.push("/investigacao-whatsapp"), 4000);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
