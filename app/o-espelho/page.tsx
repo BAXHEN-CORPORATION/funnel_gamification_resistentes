@@ -89,7 +89,7 @@ export default function OEspelhoPage() {
 
   const handleOpenStory = useCallback(() => {
     setIsTransitioning(true);
-    setTimeout(() => router.push("/historia-do-investigador"), 800);
+    setTimeout(() => router.push("/perfil-secreto"), 800);
   }, [router]);
 
   return (
@@ -100,7 +100,10 @@ export default function OEspelhoPage() {
       {/* Telegram-style header */}
       <header
         className="sticky top-0 z-20 flex flex-shrink-0 items-center gap-3 px-2 py-2"
-        style={{ backgroundColor: TG.surface, borderBottom: `1px solid ${TG.border}` }}
+        style={{
+          backgroundColor: TG.surface,
+          borderBottom: `1px solid ${TG.border}`,
+        }}
       >
         <button
           onClick={() => router.back()}
@@ -117,7 +120,10 @@ export default function OEspelhoPage() {
           style={{ backgroundColor: TG.sent }}
           aria-hidden="true"
         >
-          <Eye style={{ width: 16, height: 16, color: TG.blue }} aria-hidden="true" />
+          <Eye
+            style={{ width: 16, height: 16, color: TG.blue }}
+            aria-hidden="true"
+          />
         </div>
 
         <div className="flex flex-1 flex-col justify-center overflow-hidden">
@@ -158,7 +164,10 @@ export default function OEspelhoPage() {
               <RevealScreen key="reveal" revealStep={revealStep} />
             )}
             {phase === "reflection" && (
-              <ReflectionScreen key="reflection" onOpenStory={handleOpenStory} />
+              <ReflectionScreen
+                key="reflection"
+                onOpenStory={handleOpenStory}
+              />
             )}
           </AnimatePresence>
         </div>
@@ -237,7 +246,10 @@ function IntroScreen({ onContinue }: { onContinue: () => void }) {
             "Não responda para ninguém.",
             "Apenas responda para si mesmo.",
           ].map((line, i) => (
-            <p key={i} style={{ fontSize: 17, color: TG.textSecondary, lineHeight: 1.6 }}>
+            <p
+              key={i}
+              style={{ fontSize: 17, color: TG.textSecondary, lineHeight: 1.6 }}
+            >
               {line}
             </p>
           ))}
@@ -253,11 +265,13 @@ function IntroScreen({ onContinue }: { onContinue: () => void }) {
           onClick={onContinue}
           aria-label="Continuar para as perguntas"
           className="group flex min-h-[52px] items-center gap-3 rounded-xl px-8 font-semibold text-white transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2"
-          style={{
-            backgroundColor: TG.blue,
-            fontSize: 16,
-            focusRingColor: TG.blue,
-          } as React.CSSProperties}
+          style={
+            {
+              backgroundColor: TG.blue,
+              fontSize: 16,
+              focusRingColor: TG.blue,
+            } as React.CSSProperties
+          }
         >
           Continuar
           <ArrowRight
@@ -410,7 +424,10 @@ function RevealScreen({ revealStep }: { revealStep: number }) {
                     ? { opacity: 1, scale: 1, filter: "blur(0px)" }
                     : { opacity: 1, scale: 1 }
                 }
-                transition={{ duration: isFinalLine ? 1.0 : 0.6, ease: "easeOut" }}
+                transition={{
+                  duration: isFinalLine ? 1.0 : 0.6,
+                  ease: "easeOut",
+                }}
                 className="break-words hyphens-auto"
                 style={{
                   fontSize: isFinalLine
@@ -455,9 +472,15 @@ function ReflectionScreen({ onOpenStory }: { onOpenStory: () => void }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full rounded-2xl p-8"
-        style={{ backgroundColor: TG.surface, border: `1px solid ${TG.border}` }}
+        style={{
+          backgroundColor: TG.surface,
+          border: `1px solid ${TG.border}`,
+        }}
       >
-        <div className="flex flex-col gap-5" style={{ maxWidth: 620, margin: "0 auto" }}>
+        <div
+          className="flex flex-col gap-5"
+          style={{ maxWidth: 620, margin: "0 auto" }}
+        >
           {REFLECTION_LINES.map((line, i) => (
             <motion.p
               key={i}
@@ -494,7 +517,9 @@ function ReflectionScreen({ onOpenStory }: { onOpenStory: () => void }) {
         <p style={{ fontSize: 17, color: TG.textMuted, lineHeight: 1.6 }}>
           Essa descoberta não trouxe desespero.
         </p>
-        <p style={{ fontSize: 17, color: TG.textMuted }}>Trouxe uma pergunta.</p>
+        <p style={{ fontSize: 17, color: TG.textMuted }}>
+          Trouxe uma pergunta.
+        </p>
         <p
           className="break-words hyphens-auto"
           style={{
