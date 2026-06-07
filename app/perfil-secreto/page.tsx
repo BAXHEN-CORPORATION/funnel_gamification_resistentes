@@ -82,12 +82,12 @@ const VIDEOS: SecretVideo[] = [
         audio:
           "Quando percebi isso pela primeira vez... achei que tinha encontrado a resposta.",
       },
-      // {
-      //   start: 11,
-      //   end: 21,
-      //   audio: "Mas eu estava errado.",
-      //   text: "EU SÓ TINHA ENCONTRADO O PROBLEMA",
-      // },
+      {
+        start: 11,
+        end: 21,
+        audio: "Mas eu estava errado.",
+        text: "EU SÓ TINHA ENCONTRADO O PROBLEMA",
+      },
       // {
       //   start: 21,
       //   end: 36,
@@ -121,12 +121,12 @@ const VIDEOS: SecretVideo[] = [
       //   audio:
       //     "Durante anos eu procurei respostas. Em livros. Histórias. Filosofias. Religiões.",
       // },
-      // {
-      //   start: 36,
-      //   end: 45,
-      //   audio: "E uma pergunta nunca me abandonou.",
-      //   text: "EXISTE ESPERANÇA?",
-      // },
+      {
+        start: 18,
+        end: 23,
+        audio: "E uma pergunta nunca me abandonou.",
+        text: "EXISTE ESPERANÇA?",
+      },
     ],
   },
   {
@@ -141,19 +141,19 @@ const VIDEOS: SecretVideo[] = [
         end: 13,
         audio: "Depois de anos investigando... eu encontrei uma resposta.",
       },
-      // { start: 13, end: 21, audio: "E essa resposta mudou tudo." },
-      // {
-      //   start: 21,
-      //   end: 36,
-      //   audio:
-      //     "Mas existe um problema. Se eu simplesmente te contar a conclusão... ela terá muito menos valor.",
-      // },
-      // {
-      //   start: 36,
-      //   end: 50,
-      //   audio:
-      //     "Porque algumas verdades precisam ser percorridas. Não apenas ouvidas.",
-      // },
+      { start: 13, end: 21, audio: "E essa resposta mudou tudo." },
+      {
+        start: 13,
+        end: 18,
+        audio:
+          "Mas existe um problema. Se eu simplesmente te contar a conclusão... ela terá muito menos valor.",
+      },
+      {
+        start: 18,
+        end: 21,
+        audio:
+          "Porque algumas verdades precisam ser percorridas. Não apenas ouvidas.",
+      },
     ],
   },
   {
