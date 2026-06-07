@@ -257,7 +257,7 @@ export default function ArquivosSecretosPage() {
   const handleOpenProfile = useCallback(() => {
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     setIsTransitioning(true);
-    setTimeout(() => router.push("/perfil-secreto"), 1500);
+    setTimeout(() => router.push("/o-espelho"), 1500);
   }, [router]);
 
   const playedCount = getPlayedCount();
