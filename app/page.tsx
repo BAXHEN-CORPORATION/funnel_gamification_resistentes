@@ -13,6 +13,9 @@ export default function Home() {
   }, []);
 
   const handleClick = () => {
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
     router.push("/chamada-urgente");
   };
 
