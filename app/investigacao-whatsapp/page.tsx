@@ -369,7 +369,7 @@ export default function InvestigacaoWhatsappPage() {
 
         {/* ── Messages ── */}
         <div
-          className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden px-2 py-3"
+          className="no-scrollbar relative z-10 flex-1 overflow-y-auto overflow-x-hidden px-2 py-3"
           aria-live="polite"
           aria-label="Conversa com Investigador"
           style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
